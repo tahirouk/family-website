@@ -7,6 +7,9 @@ import cloudinary.uploader
 import cloudinary.api
 from functools import wraps
 import time
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from extensions import db
 from models import FamilyMember, Comment, MemorableMoment
@@ -36,21 +39,26 @@ bcrypt = Bcrypt(app)
 database_url = os.getenv('SUPABASE_DATABASE_URL', 'sqlite:///family.db')
 if database_url.startswith('postgres'):
     database_url = database_url.replace('postgres://', 'postgresql://')
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 1800,  # 30 minutes
+        'pool_size': 3,
+        'max_overflow': 5,
+        'pool_timeout': 20,
+        'connect_args': {
+            'connect_timeout': 10,
+            'application_name': 'ogbonna_family_app',
+            'options': '-c statement_timeout=30000'
+        }
+    }
+else:
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 1800,
+    }
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True,
-    'pool_recycle': 1800,  # 30 minutes
-    'pool_size': 3,  # Reduced for free tier
-    'max_overflow': 5,  # Reduced for free tier
-    'pool_timeout': 20,  # Reduced timeout
-    'connect_args': {
-        'connect_timeout': 10,
-        'application_name': 'ogbonna_family_app',
-        'options': '-c statement_timeout=30000'  # 30 second statement timeout
-    }
-}
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAIL_SERVER'] = 'smtp.sendgrid.net'
 app.config['MAIL_PORT'] = 587
@@ -104,9 +112,9 @@ def retry_db_operation(operation, max_retries=3, delay=1):
             time.sleep(delay * (2 ** attempt))  # Exponential backoff
             cleanup_db_connection()
 
-# Ensure tables are created (production-safe)
-with app.app_context():
-    db.create_all()
+# Ensure tables are created (production-safe) - This is now handled by migrations
+# with app.app_context():
+#     db.create_all()
 
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -298,9 +306,9 @@ def login():
             login_user(user)
             return redirect(url_for('index'))
         else:
-            return 'Invalid username or password'
+            flash('Invalid username or password.', category='error')
 
-    return render_template('login.html')
+    return render_template('login.html', user=current_user)
 
 
 @app.route('/logout')
@@ -671,4 +679,4 @@ def delete_moment(moment_id):
 # Run the app
 if __name__ == '__main__':
     
-    app.run(debug=True)
+    app.run(debug=False, port=5001)
