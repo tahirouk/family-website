@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from extensions import db
-from models import FamilyMember, Comment, MemorableMoment
+from models import FamilyMember, Comment, MemorableMoment, User
 
 app = Flask(__name__)
 app.secret_key = os.getenv('OGBONNA_SECRET_KEY')
@@ -24,9 +24,7 @@ app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 # Configure the app
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
-from models import User
 from flask_mail import Mail, Message
-from flask_migrate import Migrate
 
 
 login_manager = LoginManager()
@@ -79,7 +77,6 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Initialize database
 db.init_app(app)
-migrate = Migrate(app, db)
 mail = Mail(app)
 
 # Database connection cleanup function
@@ -680,4 +677,4 @@ def delete_moment(moment_id):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=False, port=5001)
+    app.run(debug=True, port=5000)
