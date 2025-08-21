@@ -273,7 +273,7 @@ def register():
             flash('Password must be at least 7 characters.', category='error')
         else:
             new_user = User(username=username, email=email, password_hash=bcrypt.generate_password_hash(password1).decode('utf-8'))
-            db.session.add(new_user)
+            db.session.add(new_.user)
             db.session.commit()
             
             # Set session as permanent and initialize last activity
